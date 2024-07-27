@@ -1,22 +1,27 @@
-use std::net::TcpListener;
+use std::net::{Ipv4Addr, SocketAddrV4, TcpListener};
 
 struct HttpServer {
-    port: u128,
     socket: TcpListener,
 }
 impl HttpServer {
-    pub fn new(port: u128) -> Self {
+    pub fn new(port: u16) -> Self {
+        let address = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), port);
         Self {
-            port,
-            socket: TcpListener::bind(),
+            socket: match TcpListener::bind(address) {
+                Ok(listener) => listener,
+                Err(e) => panic!("Failed to bind to port: {}", e),
+            },
         }
-    }
-    pub fn get_port(self) -> u128 {
-        self.port
     }
 }
 #[test]
-fn test() {
+fn create_proper_listener() {
     let server: HttpServer = HttpServer::new(8080);
-    assert_eq!(server.get_port(), 8080)
+    assert_eq!(server.socket.local_addr().unwrap().port(), 8080);
+}
+#[test]
+#[should_panic]
+fn creating_should_panic_when_port_is_taken() {
+    let _server1: HttpServer = HttpServer::new(8080);
+    let _server2: HttpServer = HttpServer::new(8080);
 }
