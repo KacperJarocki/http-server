@@ -15,13 +15,13 @@ impl HttpServer {
     }
 }
 #[test]
-fn create_proper_listener() {
+fn when_port_is_free_should_create_proper_listener() {
     let server: HttpServer = HttpServer::new(8080);
     assert_eq!(server.socket.local_addr().unwrap().port(), 8080);
 }
 #[test]
 #[should_panic]
-fn creating_should_panic_when_port_is_taken() {
+fn when_port_is_taken_creating_should_panic() {
     let _server1: HttpServer = HttpServer::new(8080);
     let _server2: HttpServer = HttpServer::new(8080);
 }
