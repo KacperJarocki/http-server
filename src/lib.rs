@@ -1,6 +1,6 @@
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 
-struct HttpServer {
+pub struct HttpServer {
     socket: TcpListener,
 }
 impl HttpServer {
@@ -25,6 +25,9 @@ impl HttpServer {
             Err(_) => None,
         }
     }
+    pub fn local_addr(&self) -> SocketAddr {
+        self.socket.local_addr().unwrap()
+    }
 }
 #[test]
 fn when_called_will_create_listener_even_if_port_taken() {
@@ -36,12 +39,25 @@ fn when_proper_listener_is_created_should_accept_connection() {
     use std::net::TcpStream;
     use std::thread;
     use std::time::Duration;
-    let server: HttpServer = HttpServer::run(8000);
+    let server: HttpServer = HttpServer::run(23000);
     let port = server.socket.local_addr().unwrap().port();
     let address = format!("127.0.0.1:{}", port);
     thread::spawn(move || {
         thread::sleep(Duration::from_millis(100));
-        let _connection = TcpStream::connect(address).expect("Failed to connect");
+        let connection = TcpStream::connect(address).expect("Failed to connect");
+        assert_eq!(
+            connection.peer_addr().unwrap(),
+            SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8080))
+        );
+    });
+    let address = format!("127.0.0.1:{}", port);
+    thread::spawn(move || {
+        thread::sleep(Duration::from_millis(100));
+        let connection = TcpStream::connect(address).expect("Failed to connect");
+        assert_eq!(
+            connection.peer_addr().unwrap(),
+            SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8080))
+        );
     });
 
     let _accept = server.accept().expect("Failed to accept connection");
