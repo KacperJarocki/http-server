@@ -1,4 +1,4 @@
-use http_server::HttpServer;
+use http_server::server::HttpServer;
 use std::net::TcpStream;
 use std::thread;
 use std::time::Duration;
@@ -16,9 +16,17 @@ fn main() {
         );
     });
     loop {
-        if let Some((socket, _)) = server.accept() {
+        if let Some((stream, _)) = server.accept() {
+            let mut buffer = [0u8; 1024];
             println!("Connection established");
-            let _ = socket;
+            stream.peek(&mut buffer).unwrap();
+            let buf = String::from_utf8(buffer.to_vec()).unwrap();
+            println!(
+                "Connection established {}, peer address: {}, buffer \n {}",
+                stream.local_addr().unwrap(),
+                stream.peer_addr().unwrap(),
+                buf,
+            );
         }
     }
 }
