@@ -1,21 +1,29 @@
 pub mod http_request {
+    use std::collections::HashMap;
+    #[derive(Debug, PartialEq)]
     pub enum HttpMethod {
-        Get,
-        Post,
-        Put,
-        Delete,
-        Patch,
-        Trace,
-        Options,
-        Connect,
+        GET,
+        POST,
+        PUT,
+        DELETE,
+        PATCH,
+        TRACE,
+        OPTIONS,
+        CONNECT,
     }
+    #[derive(Debug, PartialEq)]
     pub struct HttpRequest {
         method: HttpMethod,
         route: String,
+        options: HashMap<String, String>,
     }
     impl HttpRequest {
-        pub fn create(method: HttpMethod, route: String) -> Self {
-            Self { method, route }
+        pub fn create(method: HttpMethod, route: String, options: HashMap<String, String>) -> Self {
+            Self {
+                method,
+                route,
+                options,
+            }
         }
         pub fn get_method(&self) -> &HttpMethod {
             &self.method
@@ -23,6 +31,70 @@ pub mod http_request {
         pub fn get_route(&self) -> &String {
             &self.route
         }
+        pub fn get_options(&self) -> &HashMap<String, String> {
+            &self.options
+        }
+    }
+}
+pub mod parser {
+    use crate::http_request::{HttpMethod, HttpRequest};
+    use std::collections::HashMap;
+    pub fn parse_http_request(buffer: &[u8]) -> Option<HttpRequest> {
+        let buffer: Vec<u8> = buffer.to_vec();
+        let request = match String::from_utf8(buffer) {
+            Ok(request) => request,
+            Err(_) => return None,
+        };
+        let method = match request.split_whitespace().next() {
+            Some("GET") => HttpMethod::GET,
+            Some("POST") => HttpMethod::POST,
+            Some("PUT") => HttpMethod::PUT,
+            Some("DELETE") => HttpMethod::DELETE,
+            Some("PATCH") => HttpMethod::PATCH,
+            Some("TRACE") => HttpMethod::TRACE,
+            Some("OPTIONS") => HttpMethod::OPTIONS,
+            Some("CONNECT") => HttpMethod::CONNECT,
+            _ => return None,
+        };
+        let route = request.split_whitespace().nth(1).unwrap();
+        let options = parse_options(request.clone());
+        Some(HttpRequest::create(method, route.to_string(), options))
+    }
+    fn parse_options(request: String) -> HashMap<String, String> {
+        let mut options: HashMap<String, String> = HashMap::new();
+        for line in request.lines().skip(1) {
+            let mut parts = line.split(": ");
+            let key = match parts.next() {
+                Some(key) => key,
+                None => continue,
+            };
+            println!("{key}");
+            let value = match parts.next() {
+                Some(value) => value,
+                None => continue,
+            };
+            println!("{value}");
+            options.insert(key.to_string(), value.to_string());
+        }
+        options
+    }
+    #[test]
+    fn test() {
+        let request = b" GET / HTTP/1.1\nHost: 127.0.0.1:8080\nConnection: keep-alive\nCache-Control: max-age=0\nsec-ch-ua: \"Not)A;Brand\";v=\"99\", \"Brav\";v=\"127\",\"Chromium\";v=\"127\"\nsec-ch-ua-mobile: ?0\nsec-ch-ua-platform: \"Linux\"\nDNT: 1\nUpgrade-Insecure-Requests: 1\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8\nSec-GPC: 1\nAccept-Language: pl-PL,pl\nSec-Fetch-Site: cross-site\nSec-Fetch-Mode: navigate\nSec-Fetch-User: ?1\nSec-Fetch-Dest: document\nAccept-Encoding: gzip, deflate, br, zstd";
+        let parsed_request = parse_http_request(request).unwrap();
+        assert_eq!(parsed_request.get_method(), &HttpMethod::GET);
+        assert_eq!(parsed_request.get_route(), &"/".to_string());
+    }
+    #[test]
+    fn test_option_parser() {
+        let request = " GET / HTTP/1.1\nHost: 127.0.0.1:8080\nConnection: keep-alive\nCache-Control: max-age=0\nsec-ch-ua: \"Not)A;Brand\";v=\"99\", \"Brav\";v=\"127\",\"Chromium\";v=\"127\"\nsec-ch-ua-mobile: ?0\nsec-ch-ua-platform: \"Linux\"\nDNT: 1\nUpgrade-Insecure-Requests: 1\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8\nSec-GPC: 1\nAccept-Language: pl-PL,pl\nSec-Fetch-Site: cross-site\nSec-Fetch-Mode: navigate\nSec-Fetch-User: ?1\nSec-Fetch-Dest: document\nAccept-Encoding: gzip, deflate, br, zstd".to_string();
+        let parsed_options: HashMap<String, String> = parse_options(request);
+        let mut options = HashMap::new();
+        options.insert("Host".to_string(), "127.0.0.1:8080".to_string());
+        assert_eq!(
+            parsed_options.get_key_value("Host"),
+            parsed_options.get_key_value("Host")
+        )
     }
 }
 pub mod server {
