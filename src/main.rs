@@ -3,9 +3,10 @@ use std::net::TcpStream;
 use std::thread;
 use std::time::Duration;
 fn main() {
-    let server: HttpServer = HttpServer::run(8080);
+    let server: HttpServer = HttpServer::new(8080);
     let port = server.local_addr().port();
     let address = format!("127.0.0.1:{}", port);
+
     thread::spawn(move || {
         thread::sleep(Duration::from_millis(100));
         let connection = TcpStream::connect(address).expect("Failed to connect");
@@ -15,21 +16,8 @@ fn main() {
             connection.peer_addr().unwrap()
         );
     });
-    loop {
-        if let Some((stream, _)) = server.accept() {
-            let mut buffer = [0u8; 1024];
-            println!("Connection established");
-            stream.peek(&mut buffer).unwrap();
-            let buf = String::from_utf8(buffer.to_vec()).unwrap();
-            println!(
-                "Connection established {}, peer address: {}, buffer \n {}",
-                stream.local_addr().unwrap(),
-                stream.peer_addr().unwrap(),
-                buf,
-            );
-            if let Some(parsed) = http_server::parser::parse_http_request(&buffer) {
-                println!("{:?}", parsed);
-            }
-        }
-    }
+    let server = match server.run() {
+        Ok(_) => println!("Server is running"),
+        Err(e) => println!("Failed to run server: {}", e),
+    };
 }
