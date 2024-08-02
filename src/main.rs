@@ -27,6 +27,9 @@ fn main() {
                 stream.peer_addr().unwrap(),
                 buf,
             );
+            if let Some(parsed) = http_server::parser::parse_http_request(&buffer) {
+                println!("{:?}", parsed);
+            }
         }
     }
 }
