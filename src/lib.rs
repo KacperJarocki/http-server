@@ -1,3 +1,23 @@
+pub mod http_response {
+    #[derive(Debug, PartialEq)]
+    pub struct HttpResponse {
+        response_code: HttpResponseCode,
+        response_body: String,
+    }
+    #[derive(Debug, PartialEq)]
+    pub enum HttpResponseCode {
+        OK,
+        INTERNALeRROR,
+    }
+    impl HttpResponse {
+        pub fn create(response_code: HttpResponseCode, response_body: String) -> Self {
+            Self {
+                response_code,
+                response_body,
+            }
+        }
+    }
+}
 pub mod http_request {
     use std::collections::HashMap;
     #[derive(Debug, PartialEq)]
